@@ -12,7 +12,7 @@ CClassFileParser::~CClassFileParser()
 {
 }
 
-ClassFile* CClassFileParser::Parser()
+ClassFile* CClassFileParser::Parse()
 {
 	if (0 == getclassfilesize())
 	{
