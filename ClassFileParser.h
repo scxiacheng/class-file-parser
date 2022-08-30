@@ -9,7 +9,7 @@ class CClassFileParser
 public:
 	CClassFileParser(const std::string& class_file);
 	~CClassFileParser();
-	ClassFile* Parser();
+	ClassFile* Parse();
 	void Release();
 private:
 	int getclassfilesize();
