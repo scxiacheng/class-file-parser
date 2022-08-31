@@ -9,7 +9,7 @@ class CClassFileParser
 public:
 	CClassFileParser(const std::string& class_file);
 	~CClassFileParser();
-	ClassFile* Parser();
+	ClassFile* Parse();
 	void Release();
 private:
 	int getclassfilesize();
@@ -86,6 +86,7 @@ private:
 	void read_bootstrap_method(bootstrap_method** bm);
 	void read_verification_type_info(verification_type_info** pinfo);
 	void delete_array(void** array, int n);
+	void move_position(int offset);
 private:
 	std::string input_class_file;
 	u1* file_data;
