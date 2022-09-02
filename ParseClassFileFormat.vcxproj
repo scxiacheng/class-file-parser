@@ -144,14 +144,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ClassFileParser.cpp" />
-    <ClCompile Include="cn_seczone_ClassMethodExtractor.cpp" />
     <ClCompile Include="Source.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="attribute_info.h" />
     <ClInclude Include="classfile.h" />
     <ClInclude Include="ClassFileParser.h" />
-    <ClInclude Include="cn_seczone_ClassMethodExtractor.h" />
     <ClInclude Include="cp_info.h" />
     <ClInclude Include="filed_info.h" />
     <ClInclude Include="frame_types.h" />

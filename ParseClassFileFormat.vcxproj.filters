@@ -18,9 +18,6 @@
     <ClCompile Include="ClassFileParser.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="cn_seczone_ClassMethodExtractor.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Source.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -48,9 +45,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ClassFileParser.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="cn_seczone_ClassMethodExtractor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

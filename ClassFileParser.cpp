@@ -4,7 +4,7 @@ CClassFileParser::CClassFileParser(const std::string& class_file):
 	input_class_file(class_file),
 	file_data(NULL),
 	where_(NULL),
-	pClassFile(NULL)
+	pClassFile(new ClassFile)
 {
 }
 
@@ -18,28 +18,37 @@ ClassFile* CClassFileParser::Parse()
 	{
 		return NULL;
 	}
-	
-	pClassFile = new ClassFile;
-	if (!pClassFile)
+	try 
 	{
-		return NULL;
+		if (!pClassFile)
+		{
+			return NULL;
+		}
+		read_magic();
+		if (pClassFile->magic != 0xCAFEBABE)
+		{
+			return NULL;
+		}		
+		read_minorversion();
+		read_majorversion();
+		read_constpoolsize();
+		read_constpools();
+		read_accessflag();
+		read_thisclass();
+		read_supperclass();
+		read_interfacecount();
+		read_interfaces();
+		read_fieldscount();
+		read_fields();
+		read_methodscount();
+		read_methods();
+		read_attributescount();
+		read_attributes();
 	}
-	read_magic();
-	read_minorversion();
-	read_majorversion();
-	read_constpoolsize();
-	read_constpools();
-	read_accessflag();
-	read_thisclass();
-	read_supperclass();
-	read_interfacecount();
-	read_interfaces();
-	read_fieldscount();
-	read_fields();
-	read_methodscount();
-	read_methods();
-	read_attributescount();
-	read_attributes();
+	catch (...)
+	{
+		printf("[ERROR] class file {%s} can not be processed.\n", input_class_file.c_str());
+	}	
 	return pClassFile;
 }
 
@@ -130,54 +139,54 @@ void CClassFileParser::read_constpools()
 	m_Ptrs.push_back(new Pointer('o', 0, pClassFile->constant_pool));
 	for (int i = 0; i < pClassFile->constant_pool_count-1; i++)
 	{
-		printf("[DEBUG] read constant_pool[%d] ", i);
+		//printf("[DEBUG] read constant_pool[%d] ", i);
 		switch (*where_)
 		{
 		case CONSTANT_Class:
 		{
-			printf("CONSTANT_Class\n");
+			//printf("CONSTANT_Class\n");
 			read_constant_class(&pClassFile->constant_pool[i]);
 			break;
 		}
 		case CONSTANT_Fieldref:
 		{
-			printf("CONSTANT_Fieldref\n");
+			//printf("CONSTANT_Fieldref\n");
 			read_constant_fieldref(&pClassFile->constant_pool[i]);
 			break;
 		}
 		case CONSTANT_Methodref:
 		{
-			printf("CONSTANT_Methodref\n");
+			//printf("CONSTANT_Methodref\n");
 			read_constant_methodref(&pClassFile->constant_pool[i]);
 			break;
 		}
 		case CONSTANT_InterfaceMethodref:
 		{
-			printf("CONSTANT_InterfaceMethodref\n");
+			//printf("CONSTANT_InterfaceMethodref\n");
 			read_constant_interfacemethodref(&pClassFile->constant_pool[i]);
 			break;
 		}
 		case CONSTANT_String:
 		{
-			printf("CONSTANT_String\n");
+			//printf("CONSTANT_String\n");
 			read_constant_string(&pClassFile->constant_pool[i]);
 			break;
 		}
 		case CONSTANT_Integer:
 		{
-			printf("CONSTANT_Integer\n");
+			//printf("CONSTANT_Integer\n");
 			read_constant_integer(&pClassFile->constant_pool[i]);
 			break;
 		}
 		case CONSTANT_Float:
 		{
-			printf("CONSTANT_Float\n");
+			//printf("CONSTANT_Float\n");
 			read_constant_float(&pClassFile->constant_pool[i]);
 			break;
 		}
 		case CONSTANT_Long:
 		{
-			printf("CONSTANT_Long\n");
+			//printf("CONSTANT_Long\n");
 			read_constant_long(&pClassFile->constant_pool[i]);
 			++i;// see https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-4.html#jvms-4.7.2 section 4.4.4
 			break;
@@ -191,31 +200,31 @@ void CClassFileParser::read_constpools()
 		}
 		case CONSTANT_NameAndType:
 		{
-			printf("CONSTANT_NameAndType\n");
+			//printf("CONSTANT_NameAndType\n");
 			read_constant_nameandtype(&pClassFile->constant_pool[i]);
 			break;
 		}
 		case CONSTANT_Utf8:
 		{
-			printf("CONSTANT_Utf8\n");
+			//printf("CONSTANT_Utf8\n");
 			read_constant_utf8(&pClassFile->constant_pool[i]);
 			break;
 		}
 		case CONSTANT_MethodHandle:
 		{
-			printf("CONSTANT_MethodHandle\n");
+			//printf("CONSTANT_MethodHandle\n");
 			read_constant_methodhandle(&pClassFile->constant_pool[i]);
 			break;
 		}
 		case CONSTANT_MethodType:
 		{
-			printf("CONSTANT_MethodType\n");
+			//printf("CONSTANT_MethodType\n");
 			read_constant_methodtype(&pClassFile->constant_pool[i]);
 			break;
 		}
 		case CONSTANT_InvokeDynamic:
 		{
-			printf("CONSTANT_InvokeDynamic\n");
+			//printf("CONSTANT_InvokeDynamic\n");
 			read_constant_invokedynamic(&pClassFile->constant_pool[i]);
 			break;
 		}
@@ -259,6 +268,10 @@ void CClassFileParser::read_interfaces()
 		m_Ptrs.push_back(new Pointer('[', 0, pClassFile->interfaces));
 		memcpy(pClassFile->interfaces, where_, sizeof(u2) * pClassFile->interfaces_count);
 		move_position(sizeof(u2) * pClassFile->interfaces_count);
+	}
+	else
+	{
+
 	}
 }
 
@@ -325,7 +338,6 @@ void CClassFileParser::read_constant_class(cp_info** pinfo)
 {
 	(*pinfo) = new CONSTANT_Class_info;
 	m_Ptrs.push_back(new Pointer('o', 0, (*pinfo)));
-	memset((*pinfo), 0x0, sizeof(CONSTANT_Class_info));
 	memcpy((*pinfo), where_, sizeof(CONSTANT_Class_info));
 	((CONSTANT_Class_info*)(*pinfo))->name_index = swapu2(((CONSTANT_Class_info*)(*pinfo))->name_index);
 	move_position(sizeof(CONSTANT_Class_info));
@@ -335,7 +347,6 @@ void CClassFileParser::read_constant_fieldref(cp_info** pinfo)
 {
 	(*pinfo) = new CONSTANT_Fieldref_info;
 	m_Ptrs.push_back(new Pointer('o',0, (*pinfo)));
-	memset((*pinfo), 0x0, sizeof(CONSTANT_Fieldref_info));
 	memcpy((*pinfo), where_, sizeof(CONSTANT_Fieldref_info));
 	move_position(sizeof(CONSTANT_Fieldref_info));
 }
@@ -344,7 +355,6 @@ void CClassFileParser::read_constant_methodref(cp_info** pinfo)
 {
 	(*pinfo) = new CONSTANT_Methodref_info;
 	m_Ptrs.push_back(new Pointer('o', 0, (*pinfo)));
-	memset((*pinfo), 0x0, sizeof(CONSTANT_Methodref_info));
 	memcpy((*pinfo), where_, sizeof(CONSTANT_Methodref_info));
 	move_position(sizeof(CONSTANT_Methodref_info));
 }
@@ -353,7 +363,6 @@ void CClassFileParser::read_constant_interfacemethodref(cp_info** pinfo)
 {
 	(*pinfo) = new CONSTANT_InterfaceMethodref_info;
 	m_Ptrs.push_back(new Pointer('o', 0, (*pinfo)));
-	memset((*pinfo), 0x0, sizeof(CONSTANT_InterfaceMethodref_info));
 	memcpy((*pinfo), where_, sizeof(CONSTANT_InterfaceMethodref_info));
 	move_position(sizeof(CONSTANT_InterfaceMethodref_info));
 }
@@ -362,7 +371,6 @@ void CClassFileParser::read_constant_string(cp_info** pinfo)
 {
 	(*pinfo) = new CONSTANT_String_info;
 	m_Ptrs.push_back(new Pointer('o', 0, (*pinfo)));
-	memset((*pinfo), 0x0, sizeof(CONSTANT_String_info));
 	memcpy((*pinfo), where_, sizeof(CONSTANT_String_info));
 	((CONSTANT_String_info*)(*pinfo))->string_index = swapu2(((CONSTANT_String_info*)(*pinfo))->string_index);
 	move_position(sizeof(CONSTANT_String_info));
@@ -372,7 +380,6 @@ void CClassFileParser::read_constant_integer(cp_info** pinfo)
 {
 	(*pinfo) = new CONSTANT_Integer_info;
 	m_Ptrs.push_back(new Pointer('o', 0, (*pinfo)));
-	memset((*pinfo), 0x0, sizeof(CONSTANT_Integer_info));
 	memcpy((*pinfo), where_, sizeof(CONSTANT_Integer_info));
 	move_position(sizeof(CONSTANT_Integer_info));
 }
@@ -381,7 +388,6 @@ void CClassFileParser::read_constant_float(cp_info** pinfo)
 {
 	(*pinfo) = new CONSTANT_Float_info;
 	m_Ptrs.push_back(new Pointer('o', 0, (*pinfo)));
-	memset((*pinfo), 0x0, sizeof(CONSTANT_Float_info));
 	memcpy((*pinfo), where_, sizeof(CONSTANT_Float_info));
 	move_position(sizeof(CONSTANT_Float_info));
 }
@@ -390,7 +396,6 @@ void CClassFileParser::read_constant_long(cp_info** pinfo)
 {
 	(*pinfo) = new CONSTANT_Long_info;
 	m_Ptrs.push_back(new Pointer('o', 0, (*pinfo)));
-	memset((*pinfo), 0x0, sizeof(CONSTANT_Long_info));
 	memcpy((*pinfo), where_, sizeof(CONSTANT_Long_info));
 	move_position(sizeof(CONSTANT_Long_info));
 }
@@ -399,7 +404,6 @@ void CClassFileParser::read_constant_double(cp_info** pinfo)
 {
 	(*pinfo) = new CONSTANT_Double_info;
 	m_Ptrs.push_back(new Pointer('o', 0, (*pinfo)));
-	memset((*pinfo), 0x0, sizeof(CONSTANT_Double_info));
 	memcpy((*pinfo), where_, sizeof(CONSTANT_Double_info));
 	move_position(sizeof(CONSTANT_Double_info));
 }
@@ -408,7 +412,6 @@ void CClassFileParser::read_constant_nameandtype(cp_info** pinfo)
 {
 	(*pinfo) = new CONSTANT_NameAndType_info;
 	m_Ptrs.push_back(new Pointer('o', 0, (*pinfo)));
-	memset((*pinfo), 0x0, sizeof(CONSTANT_NameAndType_info));
 	memcpy((*pinfo), where_, sizeof(CONSTANT_NameAndType_info));
 	move_position(sizeof(CONSTANT_NameAndType_info));
 }
@@ -417,7 +420,6 @@ void CClassFileParser::read_constant_utf8(cp_info** pinfo)
 {
 	(*pinfo) = new CONSTANT_Utf8_info;
 	m_Ptrs.push_back(new Pointer('o', 0, (*pinfo)));
-	memset((*pinfo), 0x0, sizeof(CONSTANT_Utf8_info));
 	
 	// copy tag
 	memcpy(&(*pinfo)->tag, where_, sizeof((*pinfo)->tag));
@@ -631,7 +633,6 @@ void CClassFileParser::read_annotation(annotation** pinfo)
 {
 	(*pinfo) = new annotation;
 	m_Ptrs.push_back(new Pointer('o', 0, (*pinfo)));
-	memset((*pinfo), 0x0, sizeof(annotation));
 	
 	// type index
 	memcpy(&(*pinfo)->type_index, where_, sizeof((*pinfo)->type_index));
@@ -659,7 +660,6 @@ void CClassFileParser::read_element_value_pair(element_value_pairs** pair)
 {
 	(*pair) = new element_value_pairs;
 	m_Ptrs.push_back(new Pointer('o', 0, (*pair)));
-	memset((*pair), 0x0, sizeof(element_value_pairs));
 	
 	// element name index
 	memcpy(&(*pair)->element_name_index, where_, sizeof((*pair)->element_name_index));
@@ -691,7 +691,6 @@ void CClassFileParser::read_elementvalue(element_value** value)
 	// element value tag
 	(*value) = new element_value;
 	m_Ptrs.push_back(new Pointer('o', 0, (*value)));
-	memset(value, 0x0, sizeof(element_value));
 	memcpy(&(*value)->tag, where_, sizeof((*value)->tag));
 	move_position(sizeof((*value)->tag));
 	switch ((*value)->tag)
@@ -772,7 +771,7 @@ void CClassFileParser::read_methodsinfo(method_info** pinfo)
 	m_Ptrs.push_back(new Pointer('o', (*pinfo)->attributes_count, (*pinfo)->attributes));
 	for (int i = 0; i < (*pinfo)->attributes_count; i++)
 	{
-		printf("[DEBUG] read_method_attributeinfo of index(%d)\n", i);
+		//printf("[DEBUG] read_method_attributeinfo of index(%d)\n", i);
 		read_method_attributeinfo(&(*pinfo)->attributes[i]);
 	}
 }
@@ -781,7 +780,6 @@ void CClassFileParser::read_method_attributeinfo(attribute_info** pinfo)
 {
 	(*pinfo) = new attribute_info;
 	m_Ptrs.push_back(new Pointer('o', 0, (*pinfo)));
-	memset((*pinfo), 0x0, sizeof(attribute_info));
 	// attrubite name index
 	u2 attribute_name_index = 0;
 	memcpy(&attribute_name_index, where_, sizeof(attribute_name_index));
@@ -827,7 +825,24 @@ void CClassFileParser::read_method_attributeinfo(attribute_info** pinfo)
 	}
 	else if (strcmp("AnnotationDefault", attr_name) == 0)
 	{
-		read_AnnotationDefault_attrinfo(pinfo);
+		read_AnnotationDefault_attrinfo(pinfo); return;
+	}
+	else if (strcmp("MethodParameters", attr_name) == 0)
+	{
+		// unknown attribute name follow the size of:
+		// 1. u2 attribute_name_length = 0;
+		// 2. u4 attribute_length = 0;
+		// 3. u1[attribute_length]
+		u2 attribute_name_length = 0;
+		memcpy(&attribute_name_index, where_, sizeof(u2));
+		move_position(sizeof(u2));
+
+		u4 attribute_length = 0;
+		memcpy(&attribute_length, where_, sizeof(u4));
+		move_position(sizeof(u4));
+		attribute_length = swapu4(attribute_length);
+		move_position(attribute_length);
+		return;
 	}
 }
 
@@ -835,7 +850,6 @@ void CClassFileParser::read_code_attribute(attribute_info** pinfo)
 {
 	(*pinfo) = new Code_attribute;
 	m_Ptrs.push_back(new Pointer('o', 0, (*pinfo)));
-	memset((*pinfo), 0x0, sizeof(Code_attribute));
 	Code_attribute* code = (Code_attribute*)(*pinfo);
 
 	// attribute name index
@@ -898,7 +912,6 @@ void CClassFileParser::read_exception_attribute(attribute_info** pinfo)
 {
 	(*pinfo) = new Exceptions_attribute;
 	m_Ptrs.push_back(new Pointer('o', 0, (*pinfo)));
-	memset((*pinfo), 0x0, sizeof(Exceptions_attribute));
 
 	Exceptions_attribute* p = (Exceptions_attribute*)(*pinfo);
 
@@ -929,7 +942,6 @@ void CClassFileParser::read_RuntimeVisibleParameterAnnotations_attrinfo(attribut
 {
 	(*pinfo) = new RuntimeVisibleParameterAnnotations_attribute;
 	m_Ptrs.push_back(new Pointer('o', 0, (*pinfo)));
-	memset((*pinfo), 0x0, sizeof(RuntimeVisibleParameterAnnotations_attribute));
 	RuntimeVisibleParameterAnnotations_attribute* p = (RuntimeVisibleParameterAnnotations_attribute*)(*pinfo);
 
 	// attribute name index
@@ -964,7 +976,6 @@ void CClassFileParser::read_AnnotationDefault_attrinfo(attribute_info** pinfo)
 {
 	(*pinfo) = new AnnotationDefault_attribute;
 	m_Ptrs.push_back(new Pointer('o', 0, (*pinfo)));
-	memset((*pinfo), 0x0, sizeof(AnnotationDefault_attribute));
 
 	AnnotationDefault_attribute* p = (AnnotationDefault_attribute*)(*pinfo);
 
@@ -990,7 +1001,8 @@ void CClassFileParser::read_code_attributeinfo(attribute_info** pinfo)
 	memcpy(&attribute_name_index, where_, sizeof(attribute_name_index));
 	attribute_name_index = swapu2(attribute_name_index);
 	char* attr_name = get_attribute_name(attribute_name_index-1);
-	if (attr_name == 0) return;
+	if (attr_name == 0) 
+		return;
 	if (strcmp("LineNumberTable", attr_name) == 0)
 	{
 		read_LineNumberTable_attribute(pinfo);return;
@@ -1013,7 +1025,6 @@ void CClassFileParser::read_LineNumberTable_attribute(attribute_info** pinfo)
 {
 	(*pinfo) = new LineNumberTable_attribute;
 	m_Ptrs.push_back(new Pointer('o', 0, (*pinfo)));
-	memset((*pinfo), 0x0, sizeof(LineNumberTable_attribute));
 	
 	memcpy(&(*pinfo)->attribute_name_index, where_, sizeof((*pinfo)->attribute_name_index));
 	(*pinfo)->attribute_name_index = swapu2((*pinfo)->attribute_name_index);
@@ -1047,7 +1058,6 @@ void CClassFileParser::read_LocalVariableTable_attribute(attribute_info** pinfo)
 {
 	(*pinfo) = new LocalVariableTable_attribute;
 	m_Ptrs.push_back(new Pointer('o', 0, (*pinfo)));
-	memset(*pinfo, 0x0, sizeof(LocalVariableTable_attribute));
 
 	// attribute name index
 	memcpy(&(*pinfo)->attribute_name_index, where_, sizeof((*pinfo)->attribute_name_index));
@@ -1077,7 +1087,6 @@ void CClassFileParser::read_LocalVariableTypeTable_attribute(attribute_info** pi
 {
 	(*pinfo) = new LocalVariableTypeTable_attribute;
 	m_Ptrs.push_back(new Pointer('o', 0, (*pinfo)));
-	memset((*pinfo), 0x0, sizeof(LocalVariableTypeTable_attribute));
 	LocalVariableTypeTable_attribute* p = (LocalVariableTypeTable_attribute*)(*pinfo);
 
 	// attribute name index
@@ -1108,7 +1117,6 @@ void CClassFileParser::read_StackMapTable_attribute(attribute_info** pinfo)
 	(*pinfo) = new StackMapTable_attribute;
 	m_Ptrs.push_back(new Pointer('o', 0, (*pinfo)));
 	StackMapTable_attribute* p = (StackMapTable_attribute*)(*pinfo);
-	memset(p, 0x0, sizeof(StackMapTable_attribute));
 
 	//attribute name index
 	memcpy(&p->attribute_name_index, where_, sizeof(p->attribute_name_index));
@@ -1147,7 +1155,6 @@ void CClassFileParser::read_local_variable_table(local_variable_table** ptable)
 {
 	(*ptable) = new local_variable_table;
 	m_Ptrs.push_back(new Pointer('o', 0, (*ptable)));
-	memset((*ptable), 0x0, sizeof(local_variable_table));
 	memcpy((*ptable), where_, sizeof(local_variable_table));
 	move_position(sizeof(local_variable_table));
 }
@@ -1156,7 +1163,6 @@ void CClassFileParser::read_local_variable_type_table(local_variable_type_table*
 {
 	(*ptable) = new local_variable_type_table;
 	m_Ptrs.push_back(new Pointer('o', 0, (*ptable)));
-	memset((*ptable), 0x0, sizeof(local_variable_type_table));
 	memcpy((*ptable), where_, sizeof(local_variable_type_table));
 	move_position(sizeof(local_variable_type_table));
 }
@@ -1206,7 +1212,7 @@ void CClassFileParser::read_stack_map_frame(stack_map_frame** frame)
 		memcpy(&(*frame)->sl1sife.offset_delta, where_, sizeof(u2));
 		move_position(sizeof(u2));
 
-		u1 tag = *(where_+1);
+		u1 tag = *(where_);
 		switch (tag)
 		{
 		case 0:
@@ -1308,13 +1314,13 @@ void CClassFileParser::read_parameter_annotation(parameter_annotation** ppa)
 {
 	(*ppa) = new parameter_annotation;
 	m_Ptrs.push_back(new Pointer('o', 0, (*ppa)));
-	memset((*ppa), 0x0, sizeof(parameter_annotation));
 
 	// number of annotations
 	memcpy(&(*ppa)->num_annotations, where_, sizeof((*ppa)->num_annotations));
 	(*ppa)->num_annotations = swapu2((*ppa)->num_annotations);
 	move_position(sizeof((*ppa)->num_annotations));
-	if ((*ppa)->num_annotations == 0)return;
+	if ((*ppa)->num_annotations == 0)
+		return;
 
 	// read annotations
 	(*ppa)->annotations = new annotation * [(*ppa)->num_annotations];
@@ -1330,47 +1336,64 @@ void CClassFileParser::read_attributes_attributeinfo(attribute_info** pinfo)
 	u2 attribute_name_index = 0;
 	memcpy(&attribute_name_index, where_, sizeof(attribute_name_index));
 	attribute_name_index = swapu2(attribute_name_index);
+	if (0 == attribute_name_index)
+	{
+		// NO NAME
+		move_position(sizeof(attribute_name_index));
+		return;
+	}
 	char* attr_name = get_attribute_name(attribute_name_index-1);
-	if (attr_name == 0) return;
+	if (attr_name == 0) 
+		return;
 	if (strcmp("InnerClasses", attr_name) == 0)
 	{
-		read_InnerClasses_attribute(pinfo); return;
+		read_InnerClasses_attribute(pinfo); 
+		return;
 	}
 	else if (strcmp("EnclosingMethod", attr_name) == 0)
 	{
-		read_EnclosingMethod_attribute(pinfo); return;
+		read_EnclosingMethod_attribute(pinfo); 
+		return;
 	}
 	else if (strcmp("Synthetic", attr_name) == 0)
 	{
-		read_Synthetic_attrinfo(pinfo); return;
+		read_Synthetic_attrinfo(pinfo); 
+		return;
 	}
 	else if (strcmp("Signature", attr_name) == 0)
 	{
-		read_Signature_attrinfo(pinfo);
+		read_Signature_attrinfo(pinfo); 
+		return;
 	}
 	else if (strcmp("SourceFile", attr_name) == 0)
 	{
-		read_SourceFile_attrinfo(pinfo);
+		read_SourceFile_attrinfo(pinfo); 
+		return;
 	}
 	else if (strcmp("SourceDebugExtension", attr_name) == 0)
 	{
-		read_SourceDebugExtension_attrinfo(pinfo);
+		read_SourceDebugExtension_attrinfo(pinfo); 
+		return;
 	}
 	else if (strcmp("Deprecated", attr_name) == 0)
 	{
-		read_Deprecated_attrinfo(pinfo);
+		read_Deprecated_attrinfo(pinfo); 
+		return;
 	}
 	else if (strcmp("RuntimeVisibleAnnotations", attr_name) == 0)
 	{
 		read_RuntimeVisibleAnnotations_attrinfo(pinfo);
+		return;
 	}
 	else if (strcmp("RuntimeInvisibleAnnotations", attr_name) == 0)
 	{
-		read_RuntimeInvisibleAnnotations_attrinfo(pinfo);
+		read_RuntimeInvisibleAnnotations_attrinfo(pinfo); 
+		return;
 	}
 	else if (strcmp("BootstrapMethods", attr_name) == 0)
 	{
 		read_BootstrapMethods_attrinfo(pinfo);
+		return;
 	}
 }
 
@@ -1389,7 +1412,8 @@ void CClassFileParser::read_InnerClasses_attribute(attribute_info** pinfo)
 	memcpy(&p->number_of_classes, where_, sizeof(p->number_of_classes));
 	p->number_of_classes = swapu2(p->number_of_classes);
 	move_position(sizeof(p->number_of_classes));
-	if (p->number_of_classes == 0)return;
+	if (p->number_of_classes == 0)
+		return;
 
 	p->classes = new inner_class * [p->number_of_classes];
 	m_Ptrs.push_back(new Pointer('o', p->number_of_classes, p->classes));
@@ -1403,7 +1427,6 @@ void CClassFileParser::read_EnclosingMethod_attribute(attribute_info** pinfo)
 {
 	(*pinfo) = new EnclosingMethod_attribute;
 	m_Ptrs.push_back(new Pointer('o', 0, (*pinfo)));
-	memset((*pinfo), 0x0, sizeof(EnclosingMethod_attribute));
 	memcpy((*pinfo), where_, sizeof(EnclosingMethod_attribute));
 	move_position(sizeof(EnclosingMethod_attribute));
 }
@@ -1412,7 +1435,6 @@ void CClassFileParser::read_SourceFile_attrinfo(attribute_info** pinfo)
 {
 	(*pinfo) = new SourceFile_attribute;
 	m_Ptrs.push_back(new Pointer('o', 0, (*pinfo)));
-	memset((*pinfo), 0x0, sizeof(SourceFile_attribute));
 	memcpy((*pinfo), where_, sizeof(SourceFile_attribute));
 	move_position(sizeof(SourceFile_attribute));
 }
@@ -1421,7 +1443,6 @@ void CClassFileParser::read_SourceDebugExtension_attrinfo(attribute_info** pinfo
 {
 	(*pinfo) = new SourceDebugExtension_attribute;
 	m_Ptrs.push_back(new Pointer('o', 0, (*pinfo)));
-	memset((*pinfo), 0x0, sizeof(SourceDebugExtension_attribute));
 	SourceDebugExtension_attribute* p = (SourceDebugExtension_attribute*)(*pinfo);
 
 	memcpy(&p->attribute_name_index, where_, sizeof(p->attribute_name_index));
@@ -1443,7 +1464,6 @@ void CClassFileParser::read_BootstrapMethods_attrinfo(attribute_info** pinfo)
 {
 	(*pinfo) = new BootstrapMethods_attribute;
 	m_Ptrs.push_back(new Pointer('o', 0, (*pinfo)));
-	memset(pinfo, 0x0, sizeof(BootstrapMethods_attribute));
 
 	memcpy(&(*pinfo)->attribute_name_index, where_, sizeof((*pinfo)->attribute_name_index));
 	move_position(sizeof((*pinfo)->attribute_name_index));
@@ -1475,7 +1495,6 @@ void CClassFileParser::read_innerclass(inner_class** ic)
 {
 	*ic = new inner_class;
 	m_Ptrs.push_back(new Pointer('o', 0, *ic));
-	memset(*ic, 0x0, sizeof(inner_class));
 	memcpy(*ic, where_, sizeof(inner_class));
 	move_position(sizeof(inner_class));
 }
@@ -1484,7 +1503,6 @@ void CClassFileParser::read_bootstrap_method(bootstrap_method** bm)
 {
 	*bm = new bootstrap_method;
 	m_Ptrs.push_back(new Pointer('o', 0, *bm));
-	memset(bm, 0x0, sizeof(bootstrap_method));
 
 	memcpy(&(*bm)->bootstrap_method_ref, where_, sizeof((*bm)->bootstrap_method_ref));
 	move_position(sizeof((*bm)->bootstrap_method_ref));
